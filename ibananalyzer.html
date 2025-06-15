@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IBAN Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .analyze-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(52, 152, 219, 0.3);
+        }
+
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid #3498db;
+            transition: all 0.3s ease;
+        }
+
+        .result-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .result-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .status.valid {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.invalid {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .iban-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .breakdown-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .breakdown-item strong {
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .breakdown-item span {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            color: #3498db;
+            font-weight: 600;
+        }
+
+        .formatted-iban {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            letter-spacing: 2px;
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #f5c6cb;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏦 IBAN Analyzer</h1>
+            <p>Validate and analyze International Bank Account Numbers</p>
+        </div>
+        
+        <div class="content">
+            <div class="input-section">
+                <div class="input-group">
+                    <label for="ibanInput">Enter IBAN Number:</label>
+                    <input type="text" id="ibanInput" placeholder="e.g., GB82 WEST 1234 5698 7654 32" maxlength="34">
+                </div>
+                <button class="analyze-btn" onclick="analyzeIban()">Analyze IBAN</button>
+            </div>
+            
+            <div class="results" id="results">
+                <div class="result-card">
+                    <h3>Validation Status</h3>
+                    <div class="status" id="validationStatus"></div>
+                    <div id="errorMessage"></div>
+                </div>
+                
+                <div class="result-card" id="formatCard">
+                    <h3>Formatted IBAN</h3>
+                    <div class="formatted-iban" id="formattedIban"></div>
+                </div>
+                
+                <div class="result-card" id="breakdownCard">
+                    <h3>IBAN Breakdown</h3>
+                    <div class="iban-breakdown" id="ibanBreakdown"></div>
+                </div>
+                
+                <div class="result-card" id="infoCard">
+                    <h3>Country Information</h3>
+                    <div id="countryInfo"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Country code to country name mapping
+        const countryMap = {
+            'AD': 'Andorra', 'AE': 'United Arab Emirates', 'AL': 'Albania', 'AT': 'Austria',
+            'AZ': 'Azerbaijan', 'BA': 'Bosnia and Herzegovina', 'BE': 'Belgium', 'BG': 'Bulgaria',
+            'BH': 'Bahrain', 'BR': 'Brazil', 'BY': 'Belarus', 'CH': 'Switzerland',
+            'CR': 'Costa Rica', 'CY': 'Cyprus', 'CZ': 'Czech Republic', 'DE': 'Germany',
+            'DK': 'Denmark', 'DO': 'Dominican Republic', 'EE': 'Estonia', 'EG': 'Egypt',
+            'ES': 'Spain', 'FI': 'Finland', 'FO': 'Faroe Islands', 'FR': 'France',
+            'GB': 'United Kingdom', 'GE': 'Georgia', 'GI': 'Gibraltar', 'GL': 'Greenland',
+            'GR': 'Greece', 'GT': 'Guatemala', 'HR': 'Croatia', 'HU': 'Hungary',
+            'IE': 'Ireland', 'IL': 'Israel', 'IS': 'Iceland', 'IT': 'Italy',
+            'JO': 'Jordan', 'KW': 'Kuwait', 'KZ': 'Kazakhstan', 'LB': 'Lebanon',
+            'LC': 'Saint Lucia', 'LI': 'Liechtenstein', 'LT': 'Lithuania', 'LU': 'Luxembourg',
+            'LV': 'Latvia', 'MC': 'Monaco', 'MD': 'Moldova', 'ME': 'Montenegro',
+            'MK': 'North Macedonia', 'MR': 'Mauritania', 'MT': 'Malta', 'MU': 'Mauritius',
+            'NL': 'Netherlands', 'NO': 'Norway', 'PK': 'Pakistan', 'PL': 'Poland',
+            'PS': 'Palestine', 'PT': 'Portugal', 'QA': 'Qatar', 'RO': 'Romania',
+            'RS': 'Serbia', 'SA': 'Saudi Arabia', 'SE': 'Sweden', 'SI': 'Slovenia',
+            'SK': 'Slovakia', 'SM': 'San Marino', 'TN': 'Tunisia', 'TR': 'Turkey',
+            'UA': 'Ukraine', 'VG': 'British Virgin Islands', 'XK': 'Kosovo'
+        };
+
+        // IBAN length by country
+        const ibanLengths = {
+            'AD': 24, 'AE': 23, 'AL': 28, 'AT': 20, 'AZ': 28, 'BA': 20, 'BE': 16, 'BG': 22,
+            'BH': 22, 'BR': 29, 'BY': 28, 'CH': 21, 'CR': 22, 'CY': 28, 'CZ': 24, 'DE': 22,
+            'DK': 18, 'DO': 28, 'EE': 20, 'EG': 29, 'ES': 24, 'FI': 18, 'FO': 18, 'FR': 27,
+            'GB': 22, 'GE': 22, 'GI': 23, 'GL': 18, 'GR': 27, 'GT': 28, 'HR': 21, 'HU': 28,
+            'IE': 22, 'IL': 23, 'IS': 26, 'IT': 27, 'JO': 30, 'KW': 30, 'KZ': 20, 'LB': 28,
+            'LC': 32, 'LI': 21, 'LT': 20, 'LU': 20, 'LV': 21, 'MC': 27, 'MD': 24, 'ME': 22,
+            'MK': 19, 'MR': 27, 'MT': 31, 'MU': 30, 'NL': 18, 'NO': 15, 'PK': 24, 'PL': 28,
+            'PS': 29, 'PT': 25, 'QA': 29, 'RO': 24, 'RS': 22, 'SA': 24, 'SE': 24, 'SI': 19,
+            'SK': 24, 'SM': 27, 'TN': 24, 'TR': 26, 'UA': 29, 'VG': 24, 'XK': 20
+        };
+
+        function cleanIban(iban) {
+            return iban.replace(/\s/g, '').toUpperCase();
+        }
+
+        function formatIban(iban) {
+            const cleaned = cleanIban(iban);
+            return cleaned.replace(/(.{4})/g, '$1 ').trim();
+        }
+
+        function validateIban(iban) {
+            const cleaned = cleanIban(iban);
+            
+            // Check if IBAN is empty
+            if (!cleaned) {
+                return { valid: false, error: 'IBAN cannot be empty' };
+            }
+            
+            // Check if IBAN has valid format (letters and numbers only)
+            if (!/^[A-Z0-9]+$/.test(cleaned)) {
+                return { valid: false, error: 'IBAN contains invalid characters' };
+            }
+            
+            // Check minimum length
+            if (cleaned.length < 4) {
+                return { valid: false, error: 'IBAN is too short' };
+            }
+            
+            // Extract country code
+            const countryCode = cleaned.substring(0, 2);
+            
+            // Check if country code is valid
+            if (!countryMap[countryCode]) {
+                return { valid: false, error: `Invalid country code: ${countryCode}` };
+            }
+            
+            // Check IBAN length for country
+            const expectedLength = ibanLengths[countryCode];
+            if (cleaned.length !== expectedLength) {
+                return { 
+                    valid: false, 
+                    error: `Invalid length for ${countryCode}. Expected ${expectedLength}, got ${cleaned.length}` 
+                };
+            }
+            
+            // MOD-97 validation
+            const rearranged = cleaned.substring(4) + cleaned.substring(0, 4);
+            const numericString = rearranged.replace(/[A-Z]/g, char => (char.charCodeAt(0) - 55).toString());
+            
+            // Calculate MOD 97
+            let remainder = 0;
+            for (let i = 0; i < numericString.length; i++) {
+                remainder = (remainder * 10 + parseInt(numericString[i])) % 97;
+            }
+            
+            if (remainder !== 1) {
+                return { valid: false, error: 'IBAN checksum validation failed' };
+            }
+            
+            return { valid: true };
+        }
+
+        function analyzeIban() {
+            const input = document.getElementById('ibanInput').value;
+            const resultsDiv = document.getElementById('results');
+            const validationStatus = document.getElementById('validationStatus');
+            const errorMessage = document.getElementById('errorMessage');
+            const formattedIban = document.getElementById('formattedIban');
+            const ibanBreakdown = document.getElementById('ibanBreakdown');
+            const countryInfo = document.getElementById('countryInfo');
+            
+            // Clear previous results
+            errorMessage.innerHTML = '';
+            
+            if (!input.trim()) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+            
+            const validation = validateIban(input);
+            const cleaned = cleanIban(input);
+            
+            // Show results
+            resultsDiv.style.display = 'block';
+            
+            // Set validation status
+            if (validation.valid) {
+                validationStatus.textContent = '✅ Valid IBAN';
+                validationStatus.className = 'status valid';
+                
+                // Show formatted IBAN
+                formattedIban.textContent = formatIban(cleaned);
+                document.getElementById('formatCard').style.display = 'block';
+                
+                // Show breakdown
+                const countryCode = cleaned.substring(0, 2);
+                const checkDigits = cleaned.substring(2, 4);
+                const bban = cleaned.substring(4);
+                
+                ibanBreakdown.innerHTML = `
+                    <div class="breakdown-item">
+                        <strong>Country Code:</strong>
+                        <span>${countryCode}</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <strong>Check Digits:</strong>
+                        <span>${checkDigits}</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <strong>BBAN:</strong>
+                        <span>${bban}</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <strong>Total Length:</strong>
+                        <span>${cleaned.length} characters</span>
+                    </div>
+                `;
+                document.getElementById('breakdownCard').style.display = 'block';
+                
+                // Show country info
+                countryInfo.innerHTML = `
+                    <div class="breakdown-item">
+                        <strong>Country:</strong>
+                        <span>${countryMap[countryCode]}</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <strong>Expected Length:</strong>
+                        <span>${ibanLengths[countryCode]} characters</span>
+                    </div>
+                `;
+                document.getElementById('infoCard').style.display = 'block';
+                
+            } else {
+                validationStatus.textContent = '❌ Invalid IBAN';
+                validationStatus.className = 'status invalid';
+                errorMessage.innerHTML = `<div class="error-message">${validation.error}</div>`;
+                
+                // Hide other cards
+                document.getElementById('formatCard').style.display = 'none';
+                document.getElementById('breakdownCard').style.display = 'none';
+                document.getElementById('infoCard').style.display = 'none';
+            }
+        }
+
+        // Auto-format input as user types
+        document.getElementById('ibanInput').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\s/g, '').toUpperCase();
+            e.target.value = value.replace(/(.{4})/g, '$1 ').trim();
+        });
+
+        // Analyze on Enter key
+        document.getElementById('ibanInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                analyzeIban();
+            }
+        });
+    </script>
+</body>
+</html>

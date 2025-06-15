@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generatore IBAN</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 700px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 300;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        
+        select, input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        
+        select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+        
+        .btn-secondary:hover {
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+        }
+        
+        .result-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .result-section.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .generated-iban {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.3em;
+            text-align: center;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            word-break: break-all;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .generated-iban::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #4CAF50, #45a049, #66BB6A, #4CAF50);
+            border-radius: 12px;
+            z-index: -1;
+            animation: borderGlow 3s ease-in-out infinite;
+        }
+        
+        @keyframes borderGlow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .copy-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+        
+        .iban-details {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .detail-value {
+            color: #666;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 15px;
+            align-items: end;
+        }
+        
+        .input-group .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        
+        .random-btn {
+            background: linear-gradient(45deg, #ffc107, #ff9800);
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .random-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
+        }
+        
+        .history-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .history-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .history-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .input-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .input-group .form-group {
+                margin-bottom: 15px;
+            }
+            
+            .generated-iban {
+                font-size: 1.1em;
+                letter-spacing: 1px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏦 Generatore IBAN</h1>
+        
+        <form id="generatorForm">
+            <div class="form-group">
+                <label for="country">Seleziona Paese:</label>
+                <select id="country" name="country">
+                    <option value="">-- Seleziona un paese --</option>
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <div class="form-group">
+                    <label for="bankCode">Codice Banca (opzionale):</label>
+                    <input type="text" id="bankCode" name="bankCode" placeholder="Lascia vuoto per generazione casuale">
+                </div>
+                <button type="button" class="random-btn" onclick="generateRandomBankCode()">🎲 Casuale</button>
+            </div>
+            
+            <div class="input-group">
+                <div class="form-group">
+                    <label for="accountNumber">Numero Conto (opzionale):</label>
+                    <input type="text" id="accountNumber" name="accountNumber" placeholder="Lascia vuoto per generazione casuale">
+                </div>
+                <button type="button" class="random-btn" onclick="generateRandomAccountNumber()">🎲 Casuale</button>
+            </div>
+            
+            <button type="submit" class="btn">Genera IBAN</button>
+            <button type="button" class="btn btn-secondary" onclick="generateRandomIban()">Genera IBAN Completamente Casuale</button>
+        </form>
+        
+        <div id="resultSection" class="result-section">
+            <div id="generatedIban" class="generated-iban"></div>
+            <button class="copy-btn" onclick="copyToClipboard()">📋 Copia IBAN</button>
+            
+            <div class="iban-details">
+                <h3 style="margin-bottom: 15px; color: #333;">📊 Dettagli IBAN</h3>
+                <div id="ibanDetails"></div>
+            </div>
+        </div>
+        
+        <div class="history-section">
+            <h3 style="margin-bottom: 15px; color: #333;">📝 IBAN Generati Recentemente</h3>
+            <div id="historyList">
+                <p style="color: #666; text-align: center; font-style: italic;">Nessun IBAN generato ancora</p>
+            </div>
+            <button class="btn" onclick="clearHistory()" style="margin-top: 15px; padding: 10px; font-size: 0.9em;">🗑️ Cancella Cronologia</button>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        // Configurazioni paesi con strutture IBAN
+        const ibanConfigs = {
+            'IT': { 
+                name: 'Italia', 
+                length: 27, 
+                bankCodeLength: 5, 
+                accountLength: 12,
+                structure: 'IT + 2 cifre + 1 lettera + 5 cifre banca + 5 cifre filiale + 12 cifre conto'
+            },
+            'DE': { 
+                name: 'Germania', 
+                length: 22, 
+                bankCodeLength: 8, 
+                accountLength: 10,
+                structure: 'DE + 2 cifre + 8 cifre banca + 10 cifre conto'
+            },
+            'FR': { 
+                name: 'Francia', 
+                length: 27, 
+                bankCodeLength: 5, 
+                accountLength: 11,
+                structure: 'FR + 2 cifre + 5 cifre banca + 5 cifre filiale + 11 cifre conto + 2 cifre controllo'
+            },
+            'GB': { 
+                name: 'Regno Unito', 
+                length: 22, 
+                bankCodeLength: 4, 
+                accountLength: 14,
+                structure: 'GB + 2 cifre + 4 lettere banca + 6 cifre sort code + 8 cifre conto'
+            },
+            'ES': { 
+                name: 'Spagna', 
+                length: 24, 
+                bankCodeLength: 4, 
+                accountLength: 12,
+                structure: 'ES + 2 cifre + 4 cifre banca + 4 cifre filiale + 2 cifre controllo + 10 cifre conto'
+            },
+            'NL': { 
+                name: 'Paesi Bassi', 
+                length: 18, 
+                bankCodeLength: 4, 
+                accountLength: 10,
+                structure: 'NL + 2 cifre + 4 lettere banca + 10 cifre conto'
+            },
+            'BE': { 
+                name: 'Belgio', 
+                length: 16, 
+                bankCodeLength: 3, 
+                accountLength: 9,
+                structure: 'BE + 2 cifre + 3 cifre banca + 7 cifre conto + 2 cifre controllo'
+            },
+            'AT': { 
+                name: 'Austria', 
+                length: 20, 
+                bankCodeLength: 5, 
+                accountLength: 11,
+                structure: 'AT + 2 cifre + 5 cifre banca + 11 cifre conto'
+            },
+            'CH': { 
+                name: 'Svizzera', 
+                length: 21, 
+                bankCodeLength: 5, 
+                accountLength: 12,
+                structure: 'CH + 2 cifre + 5 cifre banca + 12 cifre conto'
+            },
+            'PT': { 
+                name: 'Portogallo', 
+                length: 25, 
+                bankCodeLength: 4, 
+                accountLength: 13,
+                structure: 'PT + 2 cifre + 4 cifre banca + 4 cifre filiale + 11 cifre conto + 2 cifre controllo'
+            }
+        };
+
+        let generatedHistory = [];
+        let currentIban = '';
+
+        // Inizializza il dropdown dei paesi
+        function initializeCountryDropdown() {
+            const countrySelect = document.getElementById('country');
+            
+            Object.keys(ibanConfigs).forEach(code => {
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = `${ibanConfigs[code].name} (${code})`;
+                countrySelect.appendChild(option);
+            });
+        }
+
+        // Genera numero casuale di lunghezza specifica
+        function generateRandomNumber(length) {
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += Math.floor(Math.random() * 10);
+            }
+            return result;
+        }
+
+        // Genera lettere casuali
+        function generateRandomLetters(length) {
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += letters.charAt(Math.floor(Math.random() * letters.length));
+            }
+            return result;
+        }
+
+        // Genera caratteri alfanumerici casuali
+        function generateRandomAlphanumeric(length) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Calcola checksum IBAN
+        function calculateIbanChecksum(countryCode, bankCode, accountNumber) {
+            // Costruisce l'IBAN temporaneo con checksum 00
+            const tempIban = countryCode + '00' + bankCode + accountNumber;
+            
+            // Sposta i primi 4 caratteri alla fine
+            const rearranged = tempIban.substring(4) + tempIban.substring(0, 4);
+            
+            // Converti in numero
+            let numericString = '';
+            for (let char of rearranged) {
+                if (char >= 'A' && char <= 'Z') {
+                    numericString += (char.charCodeAt(0) - 55).toString();
+                } else {
+                    numericString += char;
+                }
+            }
+            
+            // Calcola mod 97
+            let remainder = 0;
+            for (let i = 0; i < numericString.length; i++) {
+                remainder = (remainder * 10 + parseInt(numericString[i])) % 97;
+            }
+            
+            // Il checksum è 98 - remainder
+            const checksum = 98 - remainder;
+            return checksum.toString().padStart(2, '0');
+        }
+
+        // Genera codice banca specifico per paese
+        function generateBankCode(countryCode) {
+            const config = ibanConfigs[countryCode];
+            
+            switch(countryCode) {
+                case 'IT':
+                    return generateRandomLetters(1) + generateRandomNumber(4);
+                case 'GB':
+                case 'NL':
+                    return generateRandomLetters(4);
+                case 'FR':
+                    return generateRandomNumber(10); // 5 banca + 5 filiale
+                default:
+                    return generateRandomNumber(config.bankCodeLength);
+            }
+        }
+
+        // Genera numero conto specifico per paese
+        function generateAccountNumber(countryCode, bankCode) {
+            const config = ibanConfigs[countryCode];
+            
+            switch(countryCode) {
+                case 'IT':
+                    return generateRandomNumber(config.accountLength);
+                case 'GB':
+                    return generateRandomNumber(6) + generateRandomNumber(8); // sort code + account
+                case 'FR':
+                    return generateRandomNumber(11) + generateRandomNumber(2); // conto + controllo
+                case 'ES':
+                    return generateRandomNumber(4) + generateRandomNumber(2) + generateRandomNumber(10); // filiale + controllo + conto
+                case 'BE':
+                    return generateRandomNumber(7) + generateRandomNumber(2); // conto + controllo
+                case 'PT':
+                    return generateRandomNumber(4) + generateRandomNumber(11) + generateRandomNumber(2); // filiale + conto + controllo
+                default:
+                    return generateRandomNumber(config.accountLength);
+            }
+        }
+
+        // Genera IBAN completo
+        function generateIban(countryCode, bankCode = null, accountNumber = null) {
+            const config = ibanConfigs[countryCode];
+            
+            if (!bankCode) {
+                bankCode = generateBankCode(countryCode);
+            }
+            
+            if (!accountNumber) {
+                accountNumber = generateAccountNumber(countryCode, bankCode);
+            }
+            
+            // Assicurati che bankCode e accountNumber abbiano la lunghezza corretta
+            const totalBodyLength = config.length - 4; // Meno paese e checksum
+            const currentBodyLength = bankCode.length + accountNumber.length;
+            
+            if (currentBodyLength < totalBodyLength) {
+                accountNumber += generateRandomAlphanumeric(totalBodyLength - currentBodyLength);
+            } else if (currentBodyLength > totalBodyLength) {
+                accountNumber = accountNumber.substring(0, totalBodyLength - bankCode.length);
+            }
+            
+            const checksum = calculateIbanChecksum(countryCode, bankCode, accountNumber);
+            return countryCode + checksum + bankCode + accountNumber;
+        }
+
+        // Formatta IBAN con spazi
+        function formatIban(iban) {
+            return iban.replace(/(.{4})/g, '$1 ').trim();
+        }
+
+        // Mostra risultato
+        function showResult(iban, countryCode) {
+            const resultSection = document.getElementById('resultSection');
+            const generatedIbanDiv = document.getElementById('generatedIban');
+            const detailsDiv = document.getElementById('ibanDetails');
+            
+            currentIban = iban;
+            const formattedIban = formatIban(iban);
+            
+            generatedIbanDiv.textContent = formattedIban;
+            
+            // Dettagli IBAN
+            const config = ibanConfigs[countryCode];
+            const checksum = iban.substring(2, 4);
+            const bankCode = iban.substring(4, 4 + config.bankCodeLength);
+            const accountNumber = iban.substring(4 + config.bankCodeLength);
+            
+            detailsDiv.innerHTML = `
+                <div class="detail-row">
+                    <span class="detail-label">Paese:</span>
+                    <span class="detail-value">${config.name} (${countryCode})</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Checksum:</span>
+                    <span class="detail-value">${checksum}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Codice Banca:</span>
+                    <span class="detail-value">${bankCode}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Numero Conto:</span>
+                    <span class="detail-value">${accountNumber}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Lunghezza:</span>
+                    <span class="detail-value">${iban.length} caratteri</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Struttura:</span>
+                    <span class="detail-value" style="font-size: 0.85em;">${config.structure}</span>
+                </div>
+            `;
+            
+            resultSection.classList.add('show');
+            
+            // Aggiungi alla cronologia
+            addToHistory(iban, countryCode);
+        }
+
+        // Aggiungi alla cronologia
+        function addToHistory(iban, countryCode) {
+            const historyItem = {
+                iban: iban,
+                countryCode: countryCode,
+                timestamp: new Date().toLocaleString('it-IT')
+            };
+            
+            generatedHistory.unshift(historyItem);
+            if (generatedHistory.length > 10) {
+                generatedHistory.pop();
+            }
+            
+            updateHistoryDisplay();
+        }
+
+        // Aggiorna visualizzazione cronologia
+        function updateHistoryDisplay() {
+            const historyList = document.getElementById('historyList');
+            
+            if (generatedHistory.length === 0) {
+                historyList.innerHTML = '<p style="color: #666; text-align: center; font-style: italic;">Nessun IBAN generato ancora</p>';
+                return;
+            }
+            
+            historyList.innerHTML = generatedHistory.map(item => `
+                <div class="history-item" onclick="selectFromHistory('${item.iban}', '${item.countryCode}')">
+                    <div>
+                        <div style="font-weight: 600;">${formatIban(item.iban)}</div>
+                        <div style="font-size: 0.8em; color: #666;">${ibanConfigs[item.countryCode].name} - ${item.timestamp}</div>
+                    </div>
+                    <div style="color: #667eea;">📋</div>
+                </div>
+            `).join('');
+        }
+
+        // Seleziona dalla cronologia
+        function selectFromHistory(iban, countryCode) {
+            showResult(iban, countryCode);
+            showNotification('IBAN selezionato dalla cronologia');
+        }
+
+        // Pulisci cronologia
+        function clearHistory() {
+            generatedHistory = [];
+            updateHistoryDisplay();
+            showNotification('Cronologia cancellata');
+        }
+
+        // Copia negli appunti
+        function copyToClipboard() {
+            if (currentIban) {
+                navigator.clipboard.writeText(currentIban).then(() => {
+                    showNotification('IBAN copiato negli appunti!');
+                }).catch(() => {
+                    // Fallback per browser più vecchi
+                    const textArea = document.createElement('textarea');
+                    textArea.value = currentIban;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    showNotification('IBAN copiato negli appunti!');
+                });
+            }
+        }
+
+        // Mostra notifica
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Genera codice banca casuale
+        function generateRandomBankCode() {
+            const countryCode = document.getElementById('country').value;
+            if (!countryCode) {
+                showNotification('Seleziona prima un paese');
+                return;
+            }
+            
+            const bankCode = generateBankCode(countryCode);
+            document.getElementById('bankCode').value = bankCode;
+        }
+
+        // Genera numero conto casuale
+        function generateRandomAccountNumber() {
+            const countryCode = document.getElementById('country').value;
+            if (!countryCode) {
+                showNotification('Seleziona prima un paese');
+                return;
+            }
+            
+            const bankCode = document.getElementById('bankCode').value || generateBankCode(countryCode);
+            const accountNumber = generateAccountNumber(countryCode, bankCode);
+            document.getElementById('accountNumber').value = accountNumber;
+        }
+
+        // Genera IBAN completamente casuale
+        function generateRandomIban() {
+            const countries = Object.keys(ibanConfigs);
+            const randomCountry = countries[Math.floor(Math.random() * countries.length)];
+            
+            document.getElementById('country').value = randomCountry;
+            document.getElementById('bankCode').value = '';
+            document.getElementById('accountNumber').value = '';
+            
+            const iban = generateIban(randomCountry);
+            showResult(iban, randomCountry);
+            showNotification(`IBAN generato per ${ibanConfigs[randomCountry].name}`);
+        }
+
+        // Gestione form
+        document.getElementById('generatorForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const countryCode = document.getElementById('country').value;
+            const bankCode = document.getElementById('bankCode').value.trim();
+            const accountNumber = document.getElementById('accountNumber').value.trim();
+            
+            if (!countryCode) {
+                showNotification('Seleziona un paese');
+                return;
+            }
+            
+            const iban = generateIban(countryCode, bankCode || null, accountNumber || null);
+            showResult(iban, countryCode);
+            showNotification('IBAN generato con successo!');
+        });
+
+        // Inizializza l'applicazione
+        initializeCountryDropdown();
+    </script>
+</body>
+</html>

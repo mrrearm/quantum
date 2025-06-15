@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validatore IBAN</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            font-weight: 300;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1.1em;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+            font-family: 'Courier New', monospace;
+            letter-spacing: 1px;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .result {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .result.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .result.valid {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: 2px solid #4CAF50;
+        }
+        
+        .result.invalid {
+            background: linear-gradient(45deg, #f44336, #d32f2f);
+            color: white;
+            border: 2px solid #f44336;
+        }
+        
+        .info-panel {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .info-panel.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .info-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .info-content {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .examples {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .examples h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .example-item {
+            margin: 8px 0;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .example-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateX(5px);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            input[type="text"] {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏦 Validatore IBAN</h1>
+        
+        <form id="ibanForm">
+            <div class="form-group">
+                <label for="iban">Inserisci il codice IBAN:</label>
+                <input type="text" id="iban" name="iban" placeholder="IT60 X054 2811 1010 0000 0123 456" maxlength="34">
+            </div>
+            
+            <button type="submit" class="btn">Valida IBAN</button>
+        </form>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Validazione in corso...</p>
+        </div>
+        
+        <div id="result" class="result"></div>
+        
+        <div id="infoPanel" class="info-panel">
+            <div class="info-title">Informazioni IBAN</div>
+            <div class="info-content" id="infoContent"></div>
+        </div>
+        
+        <div class="examples">
+            <h3>📋 Esempi di IBAN validi (per test):</h3>
+            <div class="example-item" onclick="fillExample('GB29 NWBK 6016 1331 9268 19')">🇬🇧 GB29 NWBK 6016 1331 9268 19</div>
+            <div class="example-item" onclick="fillExample('DE89 3704 0044 0532 0130 00')">🇩🇪 DE89 3704 0044 0532 0130 00</div>
+            <div class="example-item" onclick="fillExample('FR14 2004 1010 0505 0001 3M02 606')">🇫🇷 FR14 2004 1010 0505 0001 3M02 606</div>
+            <div class="example-item" onclick="fillExample('IT60 X054 2811 1010 0000 0123 456')">🇮🇹 IT60 X054 2811 1010 0000 0123 456</div>
+            <div class="example-item" onclick="fillExample('ES91 2100 0418 4502 0005 1332')">🇪🇸 ES91 2100 0418 4502 0005 1332</div>
+        </div>
+    </div>
+
+    <script>
+        // Codici paese e lunghezze IBAN
+        const ibanLengths = {
+            'AD': 24, 'AE': 23, 'AL': 28, 'AT': 20, 'AZ': 28, 'BA': 20, 'BE': 16,
+            'BG': 22, 'BH': 22, 'BR': 29, 'BY': 28, 'CH': 21, 'CR': 22, 'CY': 28,
+            'CZ': 24, 'DE': 22, 'DK': 18, 'DO': 28, 'EE': 20, 'EG': 29, 'ES': 24,
+            'FI': 18, 'FO': 18, 'FR': 27, 'GB': 22, 'GE': 22, 'GI': 23, 'GL': 18,
+            'GR': 27, 'GT': 28, 'HR': 21, 'HU': 28, 'IE': 22, 'IL': 23, 'IS': 26,
+            'IT': 27, 'JO': 30, 'KW': 30, 'KZ': 20, 'LB': 28, 'LC': 32, 'LI': 21,
+            'LT': 20, 'LU': 20, 'LV': 21, 'MC': 27, 'MD': 24, 'ME': 22, 'MK': 19,
+            'MR': 27, 'MT': 31, 'MU': 30, 'NL': 18, 'NO': 15, 'PK': 24, 'PL': 28,
+            'PS': 29, 'PT': 25, 'QA': 29, 'RO': 24, 'RS': 22, 'SA': 24, 'SE': 24,
+            'SI': 19, 'SK': 24, 'SM': 27, 'TN': 24, 'TR': 26, 'UA': 29, 'VG': 24,
+            'XK': 20
+        };
+
+        // Nomi dei paesi
+        const countryNames = {
+            'AD': 'Andorra', 'AE': 'Emirati Arabi Uniti', 'AL': 'Albania', 'AT': 'Austria',
+            'AZ': 'Azerbaijan', 'BA': 'Bosnia ed Erzegovina', 'BE': 'Belgio', 'BG': 'Bulgaria',
+            'BH': 'Bahrein', 'BR': 'Brasile', 'BY': 'Bielorussia', 'CH': 'Svizzera',
+            'CR': 'Costa Rica', 'CY': 'Cipro', 'CZ': 'Repubblica Ceca', 'DE': 'Germania',
+            'DK': 'Danimarca', 'DO': 'Repubblica Dominicana', 'EE': 'Estonia', 'EG': 'Egitto',
+            'ES': 'Spagna', 'FI': 'Finlandia', 'FO': 'Isole Faroe', 'FR': 'Francia',
+            'GB': 'Regno Unito', 'GE': 'Georgia', 'GI': 'Gibilterra', 'GL': 'Groenlandia',
+            'GR': 'Grecia', 'GT': 'Guatemala', 'HR': 'Croazia', 'HU': 'Ungheria',
+            'IE': 'Irlanda', 'IL': 'Israele', 'IS': 'Islanda', 'IT': 'Italia',
+            'JO': 'Giordania', 'KW': 'Kuwait', 'KZ': 'Kazakistan', 'LB': 'Libano',
+            'LC': 'Santa Lucia', 'LI': 'Liechtenstein', 'LT': 'Lituania', 'LU': 'Lussemburgo',
+            'LV': 'Lettonia', 'MC': 'Monaco', 'MD': 'Moldova', 'ME': 'Montenegro',
+            'MK': 'Macedonia del Nord', 'MR': 'Mauritania', 'MT': 'Malta', 'MU': 'Mauritius',
+            'NL': 'Paesi Bassi', 'NO': 'Norvegia', 'PK': 'Pakistan', 'PL': 'Polonia',
+            'PS': 'Palestina', 'PT': 'Portogallo', 'QA': 'Qatar', 'RO': 'Romania',
+            'RS': 'Serbia', 'SA': 'Arabia Saudita', 'SE': 'Svezia', 'SI': 'Slovenia',
+            'SK': 'Slovacchia', 'SM': 'San Marino', 'TN': 'Tunisia', 'TR': 'Turchia',
+            'UA': 'Ucraina', 'VG': 'Isole Vergini Britanniche', 'XK': 'Kosovo'
+        };
+
+        function normalizeIban(iban) {
+            return iban.replace(/\s/g, '').toUpperCase();
+        }
+
+        function validateIbanFormat(iban) {
+            const normalized = normalizeIban(iban);
+            
+            // Controlla se contiene solo caratteri alfanumerici
+            if (!/^[A-Z0-9]+$/.test(normalized)) {
+                return { valid: false, error: 'IBAN contiene caratteri non validi' };
+            }
+            
+            // Controlla se inizia con due lettere (codice paese)
+            if (!/^[A-Z]{2}/.test(normalized)) {
+                return { valid: false, error: 'IBAN deve iniziare con il codice paese (2 lettere)' };
+            }
+            
+            const countryCode = normalized.substring(0, 2);
+            
+            // Controlla se il paese è supportato
+            if (!ibanLengths[countryCode]) {
+                return { valid: false, error: `Codice paese ${countryCode} non supportato` };
+            }
+            
+            // Controlla la lunghezza
+            if (normalized.length !== ibanLengths[countryCode]) {
+                return { 
+                    valid: false, 
+                    error: `IBAN per ${countryCode} deve essere lungo ${ibanLengths[countryCode]} caratteri. Attuale: ${normalized.length}` 
+                };
+            }
+            
+            return { valid: true, countryCode };
+        }
+
+        function calculateMod97(iban) {
+            const normalized = normalizeIban(iban);
+            
+            // Sposta i primi 4 caratteri alla fine
+            const rearranged = normalized.substring(4) + normalized.substring(0, 4);
+            
+            // Converti lettere in numeri (A=10, B=11, ..., Z=35)
+            let numericString = '';
+            for (let char of rearranged) {
+                if (char >= 'A' && char <= 'Z') {
+                    numericString += (char.charCodeAt(0) - 55).toString();
+                } else {
+                    numericString += char;
+                }
+            }
+            
+            // Calcola mod 97 per numeri molto grandi
+            let remainder = 0;
+            for (let i = 0; i < numericString.length; i++) {
+                remainder = (remainder * 10 + parseInt(numericString[i])) % 97;
+            }
+            
+            return remainder;
+        }
+
+        function validateIban(iban) {
+            if (!iban || iban.trim() === '') {
+                return { valid: false, error: 'Inserisci un codice IBAN' };
+            }
+            
+            const formatCheck = validateIbanFormat(iban);
+            if (!formatCheck.valid) {
+                return formatCheck;
+            }
+            
+            const checksum = calculateMod97(iban);
+            if (checksum !== 1) {
+                return { valid: false, error: 'Checksum IBAN non valido' };
+            }
+            
+            return { 
+                valid: true, 
+                countryCode: formatCheck.countryCode,
+                countryName: countryNames[formatCheck.countryCode] || formatCheck.countryCode
+            };
+        }
+
+        function formatIban(iban) {
+            const normalized = normalizeIban(iban);
+            return normalized.replace(/(.{4})/g, '$1 ').trim();
+        }
+
+        function showResult(result, iban) {
+            const resultDiv = document.getElementById('result');
+            const infoPanel = document.getElementById('infoPanel');
+            const infoContent = document.getElementById('infoContent');
+            
+            resultDiv.classList.remove('show', 'valid', 'invalid');
+            infoPanel.classList.remove('show');
+            
+            setTimeout(() => {
+                if (result.valid) {
+                    resultDiv.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <span style="font-size: 1.5em;">✅</span>
+                            <span>IBAN VALIDO</span>
+                        </div>
+                    `;
+                    resultDiv.classList.add('valid');
+                    
+                    infoContent.innerHTML = `
+                        <strong>Paese:</strong> ${result.countryName} (${result.countryCode})<br>
+                        <strong>IBAN formattato:</strong> ${formatIban(iban)}<br>
+                        <strong>Lunghezza:</strong> ${normalizeIban(iban).length} caratteri<br>
+                        <strong>Checksum:</strong> Valido ✓
+                    `;
+                    infoPanel.classList.add('show');
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                            <span style="font-size: 1.5em;">❌</span>
+                            <div>
+                                <div>IBAN NON VALIDO</div>
+                                <div style="font-size: 0.9em; margin-top: 5px; opacity: 0.9;">${result.error}</div>
+                            </div>
+                        </div>
+                    `;
+                    resultDiv.classList.add('invalid');
+                }
+                
+                resultDiv.classList.add('show');
+            }, 100);
+        }
+
+        function fillExample(iban) {
+            document.getElementById('iban').value = iban;
+            document.getElementById('iban').focus();
+        }
+
+        // Formattazione automatica durante la digitazione
+        document.getElementById('iban').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\s/g, '').toUpperCase();
+            let formatted = value.replace(/(.{4})/g, '$1 ').trim();
+            
+            // Limita la lunghezza massima
+            if (formatted.length > 41) { // 34 caratteri + 7 spazi massimi
+                formatted = formatted.substring(0, 41);
+            }
+            
+            e.target.value = formatted;
+        });
+
+        // Gestione del form
+        document.getElementById('ibanForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const iban = document.getElementById('iban').value;
+            const loading = document.getElementById('loading');
+            
+            // Mostra loading
+            loading.style.display = 'block';
+            
+            // Simula un piccolo delay per l'effetto loading
+            setTimeout(() => {
+                const result = validateIban(iban);
+                showResult(result, iban);
+                loading.style.display = 'none';
+            }, 500);
+        });
+
+        // Validazione in tempo reale (opzionale)
+        document.getElementById('iban').addEventListener('blur', function() {
+            const iban = this.value;
+            if (iban.trim() !== '') {
+                const result = validateIban(iban);
+                showResult(result, iban);
+            }
+        });
+    </script>
+</body>
+</html>
